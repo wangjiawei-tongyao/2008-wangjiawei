@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>城市选择的三种实现</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
+        fieldset {
+            width: 500px;
+            padding: 20px;
+            margin: 30px;
+            border: 1px solid #ccc;
+        }
+        
+        legend {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        #show {
+            width: 200px;
+            height: 25px;
+            margin-bottom: 10px;
+        }
+        
+        .btn {
+            width: 80px;
+            height: 30px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            outline: none;
+            background-color: orange;
+            margin: 0 20px;
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+        }
+        /*方法一样式部分*/
+        
+        select {
+            width: 120px;
+            height: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <fieldset>
+            <legend>下拉选择框实现省市区（县）三级联动</legend>
+            <form action="#">
+                <label for="show">您选择的是：
+                    <input type="text" value="" id="show">
+                </label>
+                <br />
+
+                <!--省份选择-->
+                <select id="prov">
+                    <option>=请选择省份=</option>
+                </select>
+
+                <!--城市选择-->
+                <select id="city">
+                    <option>=请选择城市=</option>
+                </select>
+
+                <!--县区选择-->
+                <select id="country">
+                    <option>=请选择县区=</option>
+                </select>
+
+                <button type="button" class="btn" id="btnclick">确定</button>
+            </form>
+        </fieldset>
+    </div>
+
+
+</body>
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script>
+    //1.禁用点击按钮，等到设置了省市区，再点击
+    //2.渲染省市区
+    //先渲染省份，根据省份的变化，渲染城市，根据城市的变化，渲染县区。
+    //3.渲染数据通过点击事件出入show文本框中。
+    ! function($) {
+        const show = $('#show');
+        const prov = $('#prov');
+        const city = $('#city');
+        const country = $('#country');
+        const btnclick = $('#btnclick');
+        btnclick.prop('disabled', true);
+        $.ajax({
+            url: 'http://localhost:8080/day29-31/city.json',
+            dataType: 'json'
+        }).done(function(data) {
+            $.each(data, function(index, value) {
+                prov.append(`<option index=${index}>${value.name}</option> `)
+            });
+            let objindex = {
+                prov: '',
+                city: '',
+                country: ''
+            }
+            prov.on('change', function() {
+                let provindex = $('#prov>option:selected').attr('index');
+                show.val('');
+                // let provindex1 = $(this).find('option:selected').attr('index');
+                if (objindex.prov !== provindex) {
+                    objindex.prov = provindex
+                }
+                if (provindex) {
+                    let cityname = data[provindex].city;
+                    city.find('option').first().nextAll().remove();
+                    country.find('option').first().nextAll().remove();
+                    $.each(cityname, function(index, value) {
+                        city.append(`<option index=${index}>${value.name}</option>`)
+                    });
+                } else {
+                    city.find('option').first().nextAll().remove();
+                    country.find('option').first().nextAll().remove();
+
+                }
+            });
+            city.on('change', function() {
+                show.val('');
+                let cityindex = $('#city>option:selected').attr('index');
+                if (objindex.city !== cityindex) {
+                    objindex.city = cityindex
+                }
+                if (cityindex) {
+                    let countryname = data[objindex.prov].city[cityindex].districtAndCounty;
+                    country.find('option').first().nextAll().remove();
+
+                    $.each(countryname, function(index, value) {
+                        country.append(`<option index=${index}>${value}</option>`)
+                    })
+                } else {
+                    country.find('option').first().nextAll().remove();
+                }
+            });
+            country.on('change', function() {
+                show.val('');
+                let countryindex = $('#country>option:selected').attr('index');
+                console.log(countryindex);
+                if (objindex.country !== countryindex) {
+                    objindex.country = countryindex
+                }
+                if (objindex.prov && objindex.city && objindex.country) {
+                    btnclick.prop('disabled', false)
+                }
+            });
+            btnclick.on('click', function() {
+                show.val(data[objindex.prov].name + '-' + data[objindex.prov].city[objindex.city].name + '-' + data[objindex.prov].city[objindex.city].districtAndCounty[objindex.country])
+
+            })
+
+        })
+    }(jQuery);
+</script>
+
+</html>
